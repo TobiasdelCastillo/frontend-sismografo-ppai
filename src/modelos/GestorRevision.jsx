@@ -3,6 +3,7 @@
  * Toda la lógica de negocio está en el backend (Java/Spring Boot)
  * Este cliente solo maneja consultas HTTP y visualización
  */
+import { parseOpciones } from './OpcionesBack';
 export class GestorRevision {
     constructor(options = {}){
         this.baseUrl = (typeof window !== 'undefined' && import.meta?.env?.VITE_API_URL)
@@ -67,7 +68,14 @@ export class GestorRevision {
     //     return gestorRevisionService.tomarModificacion(modificacion);
     // }
     async tomarModificacion(modificacion){
-        return await this._request(`/revision-manual/modificar/${modificacion}`, { method: 'PATCH' });
+        const resp = await this._request(`/revision-manual/modificar/${modificacion}`, { method: 'PATCH' });
+        // Normalizar la respuesta para devolver siempre un arreglo de strings
+        try{
+            return parseOpciones(resp);
+        }catch(e){
+            // En caso de error en el parseo, devolver un fallback
+            return ['Confirmar', 'Rechazar', 'Solicitar revision a experto'];
+        }
     }
 
 

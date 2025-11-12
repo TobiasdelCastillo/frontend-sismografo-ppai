@@ -20,12 +20,59 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
   // Cargar datos del evento al iniciar
   useEffect(() => {
     if (evento && show) {
+      // Debug: ver qué viene en 'evento' y en 'datos' cuando se abre el modal
+      // (console.debug no rompe en producción, ayuda a encontrar nombres de propiedades)
+      console.debug('VisualizarMapa - evento:', evento, 'datos:', datos);
+
       setMagnitud(evento.valorMagnitud || '');
-      setAlcance((datos && datos.alcanceNombre) || evento.alcanceNombre || '');
-      setOrigen((datos && datos.origenNombre) || evento.origenNombre || '');
-      setClasificacion((datos && datos.clasificacionNombre) || evento.clasificacionNombre || '');
+
+      // Soporte para varios nombres posibles devueltos por el backend
+      const alcanceVal = (datos && (datos.alcanceNombre || datos.alcance || datos.alcance_name))
+        || evento.alcanceNombre || evento.alcance || evento.alcance_name || '';
+      const origenVal = (datos && (datos.origenNombre || datos.origen || datos.origen_name))
+        || evento.origenNombre || evento.origen || evento.origen_name || '';
+      const clasificacionVal = (datos && (datos.clasificacionNombre || datos.clasificacion || datos.clasificacion_name))
+        || evento.clasificacionNombre || evento.clasificacion || evento.clasificacion_name || '';
+
+      setAlcance(alcanceVal);
+      setOrigen(origenVal);
+      setClasificacion(clasificacionVal);
     }
   }, [evento, show, datos]);
+
+  // Valores a mostrar en el modal - calculados a partir de props (evita problemas de timing con setState)
+  const displayAlcance = (datos && (datos.alcanceNombre || datos.alcance || datos.alcance_name))
+    || (evento && (evento.alcanceNombre || evento.alcance || evento.alcance_name))
+    || alcance;
+  const displayOrigen = (datos && (datos.origenNombre || datos.origen || datos.origen_name))
+    || (evento && (evento.origenNombre || evento.origen || evento.origen_name))
+    || origen;
+  const displayClasificacion = (datos && (datos.clasificacionNombre || datos.clasificacion || datos.clasificacion_name))
+    || (evento && (evento.clasificacionNombre || evento.clasificacion || evento.clasificacion_name))
+    || clasificacion;
+
+  // Cuando se abre el segundo modal (modificación), inicializar los estados del formulario
+  // a partir de los valores calculados (display...). Esto evita que el select de 'origen'
+  // quede vacío por condiciones de carrera entre props y setState.
+  useEffect(() => {
+    if (showSecondModal) {
+      setMagnitud((evento && evento.valorMagnitud) || magnitud || '');
+      setAlcance(displayAlcance || alcance || '');
+      // Normalizar y mapear 'origen' a una de las opciones del select (evita problemas de tildes/case)
+      const ORIGEN_OPTIONS = ['Tectónico', 'Volcánico', 'Artificial'];
+      const normalize = (s) => (s || '').toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+      const matchOption = (val, options) => {
+        if(!val) return '';
+        const n = normalize(val);
+        for(const opt of options){
+          if(normalize(opt) === n) return opt;
+        }
+        return val; // devolver original si no encuentra
+      };
+      setOrigen(matchOption(displayOrigen || origen || '', ORIGEN_OPTIONS));
+      setClasificacion(displayClasificacion || clasificacion || '');
+    }
+  }, [showSecondModal, displayAlcance, displayOrigen, displayClasificacion, evento]);
 
   // Controladores de modales
   const handleClose = () => onHide();
@@ -189,9 +236,9 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
           </Modal.Header>
           <Modal.Body style={bodyStyle}>
             <div>
-              <p><b>Alcance:</b> {alcance}</p>
-              <p><b>Clasificación:</b> {clasificacion}</p>
-              <p><b>Origen:</b> {origen}</p>
+              <p><b>Alcance:</b> {displayAlcance}</p>
+              <p><b>Clasificación:</b> {displayClasificacion}</p>
+              <p><b>Origen:</b> {displayOrigen}</p>
             </div>
             <hr style={{ borderColor: "#00e6ff", opacity: 0.2 }} />
             <div>
@@ -240,7 +287,7 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
                   className="form-select"
                   id="alcance"
                   name="alcance"
-                  value={alcance}
+                  value={displayAlcance}
                   onChange={(e) => setAlcance(e.target.value)}
                   required
                   style={selectStyle}
@@ -257,7 +304,7 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
                   className="form-select"
                   id="origen"
                   name="origen"
-                  value={origen}
+                  value={displayOrigen}
                   onChange={(e) => setOrigen(e.target.value)}
                   required
                   style={selectStyle}

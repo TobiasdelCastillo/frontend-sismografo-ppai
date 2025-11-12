@@ -56,7 +56,7 @@ function RevisionManual() {
         cargarEventos();
     }, []);
 
-    
+
 
     // --- ESTILOS EN LÍNEA Y CLASES PARA UNIFICAR CON INICIO ---
     return (
