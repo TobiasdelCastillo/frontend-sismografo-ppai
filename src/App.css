@@ -1,0 +1,46 @@
+/* Fondo negro total en la app */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000; /* negro total */
+  color: #f0f0f0;         /* texto claro */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Estilo del contenedor principal */
+#root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Caja central con fondo contrastante */
+.contenedor-inicio {
+  background-color: #1c1c1c;  /* gris oscuro */
+  border-radius: 1rem;
+  padding: 3rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+/* Título */
+.contenedor-inicio h1 {
+  color: #00d1ff; /* color brillante tipo cian */
+  margin-bottom: 2rem;
+}
+
+/* Botón */
+.btn-primary {
+  background-color: #ff007f;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #ff3399;
+}
