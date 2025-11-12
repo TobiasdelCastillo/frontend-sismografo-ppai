@@ -13,6 +13,8 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
   const [origen, setOrigen] = useState('');
   const [mostrarFinCU, setMostrarFinCU] = useState(false);
   const [opcionesState, setOpcionesState] = useState(null);
+  const [mostrarNotificacionModificacion, setMostrarNotificacionModificacion] = useState(false);
+  const [modifiedInfo, setModifiedInfo] = useState(null);
 
   // Opciones provistas por el backend (datos, o por la llamada a tomarModificacion) o fallback local
   const opciones = opcionesState || ((datos && datos.opciones) ? datos.opciones : ['Confirmar', 'Rechazar', 'Solicitar revision a experto']);
@@ -86,6 +88,12 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
       onHide();
     } else {
       // Si no visualizar, preguntar por modificar
+      // Cerrar todos los otros modales antes de abrir el segundo
+      setShowThirdModal(false);
+      setMostrarNotificacionModificacion(false);
+      setMostrarFinCU(false);
+      // Cerrar el modal principal (padre) y abrir el segundo modal
+      onHide();
       setShowSecondModal(true);
     }
   };
@@ -94,9 +102,29 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
   const handleModificacion = async (modificacion) => {
     // Cerrar segundo modal y consultar al backend si hay opciones de acción según la decisión
     setShowSecondModal(false);
+    setMostrarFinCU(false);
     try{
+      // Preparar datos de modificación a enviar al backend
+      const modificacionInfo = {
+        id: evento?.id,
+        magnitud: magnitud || null,
+        alcance: alcance || null,
+        origen: origen || null
+      };
+      // Guardar lo que había antes y lo que se enviará (para mostrar diff en la notificación)
+      const before = {
+        magnitud: evento?.valorMagnitud ?? null,
+        alcance: (datos && (datos.alcanceNombre || datos.alcance || datos.alcance_name)) || evento?.alcanceNombre || evento?.alcance || evento?.alcance_name || null,
+        origen: (datos && (datos.origenNombre || datos.origen || datos.origen_name)) || evento?.origenNombre || evento?.origen || evento?.origen_name || null
+      };
+      const after = {
+        magnitud: modificacionInfo.magnitud ?? null,
+        alcance: modificacionInfo.alcance ?? null,
+        origen: modificacionInfo.origen ?? null
+      };
+      setModifiedInfo({ before, after });
       // Llamada al backend que devuelve las opciones (String[])
-      const resp = await gestor.tomarModificacion(Boolean(modificacion));
+      const resp = await gestor.tomarModificacion(Boolean(modificacion), modificacionInfo);
       // Si la respuesta viene como objeto con 'opciones', adaptamos, si no asumimos arreglo
       if(resp && resp.opciones){
         setOpcionesState(resp.opciones);
@@ -106,7 +134,22 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
         // fallback: usar opciones por defecto
         setOpcionesState(['Confirmar', 'Rechazar', 'Solicitar revision a experto']);
       }
-      setShowThirdModal(true);
+      // Si se modificó (modificacion === true), mostrar notificación de éxito
+      // NO abrir el tercer modal aún; se abrirá cuando cierre la notificación
+      if(modificacion) {
+        // Cerrar tercer modal si estaba abierto, mostrar notificación
+        setShowThirdModal(false);
+        // Cerrar primer modal si sigue abierto
+        onHide();
+        setMostrarNotificacionModificacion(true);
+      } else {
+        // Si NO se modificó, abrir directamente el tercer modal con opciones
+        // Cerrar notificación si estaba abierta
+        setMostrarNotificacionModificacion(false);
+        // Cerrar primer modal si sigue abierto
+        onHide();
+        setShowThirdModal(true);
+      }
     }catch(err){
       console.error('Error al solicitar opciones de modificación:', err);
       alert('No se pudieron cargar las opciones de modificación. Reintente.');
@@ -133,7 +176,10 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
 
       // Actualizar listado en el padre
       onEstadoActualizado();
+      // Cerrar todos los modales excepto el modal final de confirmación
       setShowThirdModal(false);
+      setShowSecondModal(false);
+      setMostrarNotificacionModificacion(false);
       setMostrarFinCU(true);
     }catch(err){
       console.error('Error al ejecutar acción sobre el evento:', err);
@@ -374,6 +420,60 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
           <Modal.Footer style={footerStyle}>
             <Button style={btnPrimary} onClick={() => setMostrarFinCU(false)}>
               Cerrar
+            </Button>
+          </Modal.Footer>
+        </div>
+      </Modal>
+
+      {/* Modal Notificación de Modificación */}
+  <Modal show={mostrarNotificacionModificacion} onHide={() => { setMostrarNotificacionModificacion(false); setShowSecondModal(false); setMostrarFinCU(false); onHide(); setShowThirdModal(true); }} centered contentClassName="border-0" style={{ border: "none" }}>
+        <div style={modalStyle}>
+          <Modal.Header closeButton style={headerStyle}>
+            <Modal.Title style={titleStyle}>Evento Modificado</Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={bodyStyle}>
+            <div style={{ textAlign: 'center' }}>
+              <i className="bi bi-check-circle" style={{ fontSize: 48, color: "#4caf50", marginBottom: "1rem" }}></i>
+              <p style={{ fontSize: "1.1rem", color: "#00e6ff", marginBottom: "0.5rem" }}>
+                ¡Evento modificado correctamente!
+              </p>
+              {modifiedInfo ? (
+                (() => {
+                  const { before, after } = modifiedInfo;
+                  const keys = ['magnitud', 'alcance', 'origen'];
+                  const changed = keys.filter(k => {
+                    const b = before?.[k];
+                    const a = after?.[k];
+                    // comparar como strings, considerando null/undefined
+                    return String(b ?? '') !== String(a ?? '');
+                  });
+                  if (changed.length === 0) {
+                    return <p style={{ color: "#aaa", fontSize: "0.95rem" }}>No hubo cambios en los campos seleccionados.</p>;
+                  }
+                  return (
+                    <div style={{ color: "#ddd", fontSize: "0.95rem", textAlign: 'left', margin: '0 auto', maxWidth: 420 }}>
+                      <p style={{ color: '#00e6ff', marginBottom: '0.5rem' }}>Cambios realizados:</p>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                        {changed.map((k) => (
+                          <li key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px dashed rgba(255,255,255,0.06)' }}>
+                            <strong style={{ textTransform: 'capitalize', color: '#fff' }}>{k.replace(/([A-Z])/g, ' $1')}</strong>
+                            <span style={{ color: '#aaa' }}>{String(before?.[k] ?? '')} → <strong style={{ color: '#00e6ff' }}>{String(after?.[k] ?? '')}</strong></span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()
+              ) : (
+                <p style={{ color: "#aaa", fontSize: "0.95rem" }}>
+                  Los datos del evento sísmico han sido actualizados en el sistema.
+                </p>
+              )}
+            </div>
+          </Modal.Body>
+          <Modal.Footer style={footerStyle}>
+            <Button style={btnPrimary} onClick={() => { setMostrarNotificacionModificacion(false); setShowSecondModal(false); setMostrarFinCU(false); onHide(); setShowThirdModal(true); }}>
+              Continuar
             </Button>
           </Modal.Footer>
         </div>

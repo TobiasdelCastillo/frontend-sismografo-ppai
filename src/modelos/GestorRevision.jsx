@@ -63,12 +63,20 @@ export class GestorRevision {
     }
     
 
-    //     @PatchMapping("/modificar/{modificacion}")
-    // public String[] tomarModificacion(@PathVariable Boolean modificacion){
-    //     return gestorRevisionService.tomarModificacion(modificacion);
-    // }
-    async tomarModificacion(modificacion){
-        const resp = await this._request(`/revision-manual/modificar/${modificacion}`, { method: 'PATCH' });
+    // PATCH /revision-manual/modificar/{modificacion}
+    // Envía: { modificacion: boolean, modificacionInfo: { id, magnitud, alcance, origen } }
+    // Devuelve: String[] (opciones de acción)
+    async tomarModificacion(modificacion, modificacionInfo = {}){
+        const payload = {
+            id: modificacionInfo.id || null,
+            magnitud: modificacionInfo.magnitud || null,
+            alcance: modificacionInfo.alcance || null,
+            origen: modificacionInfo.origen || null
+        };
+        const resp = await this._request(`/revision-manual/modificar/${modificacion}`, { 
+            method: 'PATCH', 
+            body: JSON.stringify(payload) 
+        });
         // Normalizar la respuesta para devolver siempre un arreglo de strings
         try{
             return parseOpciones(resp);
@@ -90,9 +98,9 @@ export class GestorRevision {
         return await this._request('/gestor-revision/confirmar', { method: 'POST', body: JSON.stringify(payload) });
     }
 
-    // POST /gestor-revision/rechazar
+ 
     async rechazarEvento(opc){
-        return await this._request(`/revision-manual/rechazar/${encodeURIComponent(opc)}`, { method: 'PATCH' });
+        return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
     }
 
     // POST /gestor-revision/solicitar-experto
