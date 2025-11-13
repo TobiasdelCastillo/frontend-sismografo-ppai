@@ -63,9 +63,7 @@ export class GestorRevision {
     }
     
 
-    // PATCH /revision-manual/modificar/{modificacion}
-    // Envía: { modificacion: boolean, modificacionInfo: { id, magnitud, alcance, origen } }
-    // Devuelve: String[] (opciones de acción)
+
     async tomarModificacion(modificacion, modificacionInfo = {}){
         const payload = {
             id: modificacionInfo.id || null,
@@ -85,16 +83,16 @@ export class GestorRevision {
             return ['Confirmar', 'Rechazar', 'Solicitar revision a experto'];
         }
     }
-
+    
+    // Alias genérico para tomar una acción por nombre (Confirmar/Rechazar/Solicitar revision a experto)
+    async tomarAccion(opc){
+        return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
+    }
 
     async rechazarEvento(opc){
         return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
     }
 
-    // Alias genérico para tomar una acción por nombre (Confirmar/Rechazar/Solicitar revision a experto)
-    async tomarAccion(opc){
-        return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
-    }
 
     // Compatibilidad: confirmarEvento existía antes y algunas partes del UI lo llaman.
     // Implementamos como wrapper que invoca el endpoint /revision-manual/accion/Confirmar
@@ -103,10 +101,7 @@ export class GestorRevision {
         return await this._request(`/revision-manual/accion/${encodeURIComponent('Confirmar')}`, { method: 'PATCH', json: false });
     }
 
-    // POST /gestor-revision/seleccionar
-    async seleccionarEvento(payload){
-        return await this._request('/gestor-revision/seleccionar', { method: 'POST', body: JSON.stringify(payload) });
-    }
+
 
 
  

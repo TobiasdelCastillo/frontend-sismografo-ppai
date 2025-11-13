@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { GestorRevision } from '../modelos/index';
-import VisualizarMapa from './Visualizar';
+import OpcionesRevision from './OpcionesRevision';
 
 function RevisionManual() {
     const gestorRef = useRef(new GestorRevision());
@@ -11,6 +11,11 @@ function RevisionManual() {
     const [datos, setDatos] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    
+    const handleEstadoActualizado = async () => {
+        setMostrarModal(false);
+        await cargarEventos();
+    };
 
     const cargarEventos = async () => {
         setLoading(true);
@@ -25,7 +30,12 @@ function RevisionManual() {
             setLoading(false);
         }
     };
-
+    
+    useEffect(() => {
+        cargarEventos();
+    }, []);
+    
+    
     const handleRevisar = async (eventoPlano) => {
         setLoading(true);
         setError(null);
@@ -47,14 +57,6 @@ function RevisionManual() {
         }
     };
 
-    const handleEstadoActualizado = async () => {
-        setMostrarModal(false);
-        await cargarEventos();
-    };
-
-    useEffect(() => {
-        cargarEventos();
-    }, []);
 
 
 
@@ -132,7 +134,7 @@ function RevisionManual() {
                         </tbody>
                     </table>
                 </div>
-                <VisualizarMapa
+                <OpcionesRevision
                     evento={eventoSeleccionado}
                     show={mostrarModal}
                     onHide={() => setMostrarModal(false)}

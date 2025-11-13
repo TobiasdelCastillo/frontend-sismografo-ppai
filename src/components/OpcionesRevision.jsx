@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 
-function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualizado, handleFinCU }) {
+function OpcionesRevision({ evento, show, onHide, gestor, datos, onEstadoActualizado, handleFinCU }) {
   const [showSecondModal, setShowSecondModal] = useState(false);
   const [showThirdModal, setShowThirdModal] = useState(false);
 
@@ -98,6 +98,8 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
     }
   };
 
+////////////////////////////////////////////////MODAL MODIFICACION EVENTO SELECCIONADO///////////////////////////////////////////////////////////////
+
   // Cuando rechazas la modificación (cerrar el segundo modal)
   const handleModificacion = async (modificacion) => {
     // Cerrar segundo modal y consultar al backend si hay opciones de acción según la decisión
@@ -122,6 +124,10 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
         alcance: modificacionInfo.alcance ?? null,
         origen: modificacionInfo.origen ?? null
       };
+
+
+
+
       setModifiedInfo({ before, after });
       // Llamada al backend que devuelve las opciones (String[])
       const resp = await gestor.tomarModificacion(Boolean(modificacion), modificacionInfo);
@@ -134,6 +140,7 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
         // fallback: usar opciones por defecto
         setOpcionesState(['Confirmar', 'Rechazar', 'Solicitar revision a experto']);
       }
+      
       // Si se modificó (modificacion === true), mostrar notificación de éxito
       // NO abrir el tercer modal aún; se abrirá cuando cierre la notificación
       if(modificacion) {
@@ -159,6 +166,10 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
   // Cuando confirmas/modificas o cierras tercer modal
   const handleThirdClose = () => setShowThirdModal(false);
 
+
+/////////////////////////////////////////MODAL OPCIONES REVISION/////////////////////////////////////////////////////////////////////////////////////
+
+
   // Manejar selección de opción en tercer modal
   const handleOptionSelect = async (option) => {
     // Llamar al backend para la acción seleccionada
@@ -173,6 +184,8 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
         if (gestor && typeof gestor.tomarAccion === 'function') {
           await gestor.tomarAccion(option);
         } else {
+
+
           // Método genérico no disponible -> intentar métodos concretos
           if (option === 'Confirmar' && gestor && typeof gestor.confirmarEvento === 'function') {
             await gestor.confirmarEvento(option);
@@ -563,4 +576,4 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
   );
 }
 
-export default VisualizarMapa;
+export default OpcionesRevision;
