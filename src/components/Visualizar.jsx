@@ -400,7 +400,7 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
                   className="form-select"
                   id="alcance"
                   name="alcance"
-                  value={displayAlcance}
+                    value={alcance}
                   onChange={(e) => setAlcance(e.target.value)}
                   required
                   style={selectStyle}
@@ -417,7 +417,7 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
                   className="form-select"
                   id="origen"
                   name="origen"
-                  value={displayOrigen}
+                  value={origen}
                   onChange={(e) => setOrigen(e.target.value)}
                   required
                   style={selectStyle}
