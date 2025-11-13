@@ -163,15 +163,36 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
   const handleOptionSelect = async (option) => {
     // Llamar al backend para la acción seleccionada
     try{
-      if(option === 'Confirmar'){
-        await gestor.confirmarEvento(option);
-      } else if(option === 'Rechazar'){
-        await gestor.rechazarEvento(option);
-      } else if(option === 'Solicitar revision a experto' || option === 'Solicitar revision a experto'){
-        await gestor.solicitarRevisionExperto(option);
+      // Unificar acciones: el backend expone /revision-manual/accion/{opc}
+      // para Confirmar, Rechazar y Solicitar revision a experto. Usamos
+      // el método genérico tomarAccion para invocarlo.
+      const ACTIONS_VIA_ACCION = ['Confirmar', 'Rechazar', 'Solicitar revision a experto'];
+      if (ACTIONS_VIA_ACCION.includes(option)) {
+        // Preferir el método genérico tomarAccion si está disponible,
+        // si no existe, caer en los métodos específicos según el nombre.
+        if (gestor && typeof gestor.tomarAccion === 'function') {
+          await gestor.tomarAccion(option);
+        } else {
+          // Método genérico no disponible -> intentar métodos concretos
+          if (option === 'Confirmar' && gestor && typeof gestor.confirmarEvento === 'function') {
+            await gestor.confirmarEvento(option);
+          } else if (option === 'Rechazar' && gestor && typeof gestor.rechazarEvento === 'function') {
+            await gestor.rechazarEvento(option);
+          } else if (option === 'Solicitar revision a experto' && gestor && typeof gestor.solicitarRevisionExperto === 'function') {
+            await gestor.solicitarRevisionExperto(option);
+          } else {
+            // ultimo recurso: intentar invocar tomarAccion aunque no sea función (lanza error controlado)
+            await gestor.tomarAccion(option);
+          }
+        }
       } else {
-        // fallback: enviar a confirmar por defecto
-        await gestor.confirmarEvento(option);
+        // fallback: usar los métodos anteriores si es necesario
+        if (gestor && typeof gestor.confirmarEvento === 'function') {
+          await gestor.confirmarEvento(option);
+        } else {
+          // intentar tomarAccion como último recurso
+          await gestor.tomarAccion(option);
+        }
       }
 
       // Actualizar listado en el padre
@@ -184,6 +205,52 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
     }catch(err){
       console.error('Error al ejecutar acción sobre el evento:', err);
       // mostrar alerta simple
+      alert('Error en la acción: ' + (err.message || err.status || 'desconocido'));
+    }
+  };
+
+  // Handlers explícitos para botones que deben invocar /revision-manual/accion/{opc}
+  const handleConfirmarClick = async () => {
+    try{
+      if (gestor && typeof gestor.tomarAccion === 'function') {
+        await gestor.tomarAccion('Confirmar');
+      } else if (gestor && typeof gestor.confirmarEvento === 'function') {
+        await gestor.confirmarEvento('Confirmar');
+      } else {
+        // último recurso
+        await gestor.rechazarEvento && gestor.rechazarEvento('Confirmar');
+      }
+      onEstadoActualizado();
+      setShowThirdModal(false);
+      setShowSecondModal(false);
+      setMostrarNotificacionModificacion(false);
+      setMostrarFinCU(true);
+    }catch(err){
+      console.error('Error al confirmar evento:', err);
+      alert('Error en la acción: ' + (err.message || err.status || 'desconocido'));
+    }
+  };
+
+  const handleSolicitarRevisionClick = async () => {
+    try{
+      if (gestor && typeof gestor.tomarAccion === 'function') {
+        await gestor.tomarAccion('Solicitar revision a experto');
+      } else if (gestor && typeof gestor.solicitarRevisionExperto === 'function') {
+        await gestor.solicitarRevisionExperto('Solicitar revision a experto');
+      } else if (gestor && typeof gestor.tomarAccion !== 'function' && gestor && typeof gestor.rechazarEvento === 'function') {
+        // intentar usar rechazarEvento si no hay otra alternativa
+        await gestor.rechazarEvento('Solicitar revision a experto');
+      } else {
+        // intento final: invocar tomarAccion (esto lanzará si no existe)
+        await gestor.tomarAccion('Solicitar revision a experto');
+      }
+      onEstadoActualizado();
+      setShowThirdModal(false);
+      setShowSecondModal(false);
+      setMostrarNotificacionModificacion(false);
+      setMostrarFinCU(true);
+    }catch(err){
+      console.error('Error al solicitar revision a experto:', err);
       alert('Error en la acción: ' + (err.message || err.status || 'desconocido'));
     }
   };
@@ -364,7 +431,7 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
             </form>
           </Modal.Body>
           <Modal.Footer style={footerStyle}>
-            <Button style={btnSecondary} onClick={() => handleModificacion(false)}>
+            <Button style={btnDanger} onClick={() => handleModificacion(false)}>
               No Modificar
             </Button>
             <Button style={btnPrimary} onClick={() => handleModificacion(true)}>

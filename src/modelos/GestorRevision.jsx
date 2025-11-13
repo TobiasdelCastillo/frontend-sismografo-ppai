@@ -87,21 +87,29 @@ export class GestorRevision {
     }
 
 
+    async rechazarEvento(opc){
+        return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
+    }
+
+    // Alias genérico para tomar una acción por nombre (Confirmar/Rechazar/Solicitar revision a experto)
+    async tomarAccion(opc){
+        return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
+    }
+
+    // Compatibilidad: confirmarEvento existía antes y algunas partes del UI lo llaman.
+    // Implementamos como wrapper que invoca el endpoint /revision-manual/accion/Confirmar
+    async confirmarEvento(payload){
+        // payload puede ser un texto o un objeto; ignoramos y llamamos al endpoint esperable
+        return await this._request(`/revision-manual/accion/${encodeURIComponent('Confirmar')}`, { method: 'PATCH', json: false });
+    }
 
     // POST /gestor-revision/seleccionar
     async seleccionarEvento(payload){
         return await this._request('/gestor-revision/seleccionar', { method: 'POST', body: JSON.stringify(payload) });
     }
 
-    // POST /gestor-revision/confirmar
-    async confirmarEvento(payload){
-        return await this._request('/gestor-revision/confirmar', { method: 'POST', body: JSON.stringify(payload) });
-    }
 
  
-    async rechazarEvento(opc){
-        return await this._request(`/revision-manual/accion/${encodeURIComponent(opc)}`, { method: 'PATCH', json: false });
-    }
 
     // POST /gestor-revision/solicitar-experto
     async solicitarRevisionExperto(payload){
