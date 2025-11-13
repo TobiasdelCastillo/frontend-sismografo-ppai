@@ -447,26 +447,40 @@ function VisualizarMapa({ evento, show, onHide, gestor, datos, onEstadoActualiza
           <Modal.Header closeButton style={headerStyle}>
             <Modal.Title style={titleStyle}>Seleccione una acción</Modal.Title>
           </Modal.Header>
+          {/* Helper para estilos de botones según la opción */}
+          {/* confirmar -> verde, rechazar -> rojo (usar btnDanger), solicitar revision -> naranja */}
           <Modal.Body style={bodyStyle}>
-            <p>Seleccione una acción para el evento.</p>
-            <div className="d-grid gap-2">
-              {opciones.map((op, idx) => (
-                <Button
-                  key={idx}
-                  variant="outline-primary"
-                  style={{
-                    ...btnPrimary,
-                    background: "transparent",
-                    color: "#00e6ff",
-                    border: "2px solid #00e6ff"
-                  }}
-                  onClick={() => handleOptionSelect(op)}
-                >
-                  {op}
-                </Button>
-              ))}
-            </div>
-          </Modal.Body>
+                <p>Seleccione una acción para el evento.</p>
+                <div className="d-grid gap-2">
+                  {opciones.map((op, idx) => {
+                    const keyLower = (op || '').toString().toLowerCase();
+                    const getOptionButtonStyle = (opt) => {
+                      if(!opt) return { ...btnPrimary };
+                      if(opt === 'Confirmar' || keyLower === 'confirmar'){
+                        return { ...btnPrimary, background: 'linear-gradient(90deg, #28a745 0%, #1e9b3f 100%)', color: '#fff', border: 'none' };
+                      }
+                      if(opt === 'Rechazar' || keyLower === 'rechazar'){
+                        return { ...btnDanger };
+                      }
+                      if(keyLower.includes('solicitar') || keyLower.includes('revision')){
+                        return { ...btnPrimary, background: 'linear-gradient(90deg, #ff9800 0%, #ff6d00 100%)', color: '#222', border: 'none' };
+                      }
+                      // fallback: estilo por defecto (outline azul)
+                      return { ...btnPrimary, background: 'transparent', color: '#00e6ff', border: '2px solid #00e6ff' };
+                    };
+
+                    return (
+                      <Button
+                        key={idx}
+                        style={getOptionButtonStyle(op)}
+                        onClick={() => handleOptionSelect(op)}
+                      >
+                        {op}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </Modal.Body>
           <Modal.Footer style={footerStyle}>
             <Button style={btnSecondary} onClick={handleThirdClose}>
               Cancelar
